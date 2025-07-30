@@ -201,11 +201,22 @@ export class MonitoringService {
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : '';
         
-        // Check if it's a rate limiting error
-        if (errorMsg.toLowerCase().includes('rate limit') || 
-            errorMsg.toLowerCase().includes('too many requests') ||
-            errorMsg.toLowerCase().includes('429')) {
-          const delay = Math.pow(2, attempt) * 1000; // 1s, 2s, 4s
+        // Check if it's a rate limiting error (improved detection)
+        const isRateLimited = errorMsg.toLowerCase().includes('rate limit') || 
+                             errorMsg.toLowerCase().includes('too many requests') ||
+                             errorMsg.toLowerCase().includes('429') ||
+                             errorMsg.toLowerCase().includes('-32005');
+        
+        // Debug log to see what error we're getting
+        logger.debug('Processing block error details', {
+          blockNumber,
+          attempt: attempt + 1,
+          errorMessage: errorMsg.substring(0, 200), // First 200 chars
+          isRateLimited
+        });
+        
+        if (isRateLimited) {
+          const delay = Math.pow(2, attempt) * 3000; // 9s, 18s, 36s
           logger.warn(`Rate limited, backing off for ${delay}ms`, { 
             blockNumber, 
             attempt: attempt + 1,
