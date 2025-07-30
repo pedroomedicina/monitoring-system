@@ -170,11 +170,26 @@ export class MonitoringService {
       });
 
       // Process blocks with retry logic
+      let successfullyProcessed = this.lastProcessedBlock;
+      
       for (let blockNum = this.lastProcessedBlock + 1; blockNum <= endBlock; blockNum++) {
-        await this.processBlockWithRetry(blockNum);
+        try {
+          await this.processBlockWithRetry(blockNum);
+          successfullyProcessed = blockNum; // Track progress
+        } catch (error) {
+          logger.error('Failed to process block after all retries - skipping', {
+            blockNumber: blockNum,
+            error: error instanceof Error ? error.message : 'Unknown error',
+            willSkipBlock: true
+          });
+          
+          // Skip this block and continue with the next one
+          // This prevents getting stuck on problematic blocks
+          successfullyProcessed = blockNum;
+        }
       }
 
-      this.lastProcessedBlock = endBlock;
+      this.lastProcessedBlock = successfullyProcessed;
       
       // Log if we're still catching up
       if (endBlock < currentBlock.number) {
@@ -216,7 +231,7 @@ export class MonitoringService {
         });
         
         if (isRateLimited) {
-          const delay = Math.pow(2, attempt * 3) * 1000; // 9s, 36s, 81s
+          const delay = Math.pow(3, attempt + 4) * 1000;
           logger.warn(`Rate limited, backing off for ${delay}ms`, { 
             blockNumber, 
             attempt: attempt + 1,
