@@ -216,7 +216,7 @@ export class MonitoringService {
         });
         
         if (isRateLimited) {
-          const delay = Math.pow(2, attempt) * 3000; // 9s, 18s, 36s
+          const delay = Math.pow(2, attempt * 3) * 1000; // 9s, 36s, 81s
           logger.warn(`Rate limited, backing off for ${delay}ms`, { 
             blockNumber, 
             attempt: attempt + 1,
