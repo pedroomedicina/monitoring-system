@@ -1,0 +1,45 @@
+services:
+  makerdao-monitor:
+    build: .
+    container_name: makerdao-job-monitor
+    restart: "no"  # Disabled for debugging
+    environment:
+      - NODE_ENV=development  # More verbose logging
+      - DEBUG=*
+    env_file:
+      - .env
+    volumes:
+      # Mount data and logs directories for persistence
+      - ./data:/app/data
+      - ./logs:/app/logs
+    networks:
+      - monitoring-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "process.exit(0)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Optional: Add a simple web dashboard (for future enhancement)
+  # dashboard:
+  #   image: nginx:alpine
+  #   container_name: makerdao-dashboard
+  #   ports:
+  #     - "8080:80"
+  #   volumes:
+  #     - ./dashboard:/usr/share/nginx/html
+  #   depends_on:
+  #     - makerdao-monitor
+  #   networks:
+  #     - monitoring-network
+
+networks:
+  monitoring-network:
+    driver: bridge
+
+volumes:
+  monitor-data:
+    driver: local
+  monitor-logs:
+    driver: local
